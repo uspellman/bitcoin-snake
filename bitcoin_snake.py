@@ -131,41 +131,44 @@ while running:
 
     # Move the snake
     if not move_snake():
-        running = False
         screen.fill(BLACK)
 
         # Check and update high score
         new_high_score = score > high_score
         if new_high_score:
+            high_score = score
             with open(HIGH_SCORE_FILE, 'w') as f:
                 f.write(str(score))
 
         # Display messages with proper positioning in yellow
         display_message("You Lost", YELLOW, 48, -130)
-        display_message(f"Score: {score}  |  Best: {max(score, high_score)}", WHITE, 36, -75)
+        display_message(f"Score: {score}  |  Best: {high_score}", WHITE, 36, -75)
         if new_high_score:
             display_message("NEW HIGH SCORE!", BITCOIN_ORANGE, 42, -30)
-        display_message("This game will close in 5 seconds", YELLOW, 36, 20 if new_high_score else -30)
-        
-        pygame.display.flip()
-        
-        # Blinking countdown timer
-        for i in range(5, 0, -1):
-            blink_time = pygame.time.get_ticks()
-            while pygame.time.get_ticks() - blink_time < 1000:  # 1 second per number
-                screen.fill(BLACK)
-                if pygame.time.get_ticks() % 500 < 250:  # Blink at half-second cadence
-                    display_message(str(i), YELLOW, 72)
-                else:
-                    screen.fill(BLACK)  # Clear screen for blink effect
-                pygame.display.flip()
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        sys.exit()  # Allow quitting during countdown
-                pygame.time.delay(50)  # Small delay for smoother animation
+        display_message(f"Snake length: {len(snake)} blocks", WHITE, 36, 20 if new_high_score else -30)
+        display_message("R to Restart  |  Q to Quit", WHITE, 36, 65 if new_high_score else 20)
 
-        # Force quit the application
-        sys.exit(1)
+        pygame.display.flip()
+
+        # Wait for player to press R or Q
+        waiting_for_input = True
+        while waiting_for_input:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        # Reset game state for a new round
+                        snake.clear()
+                        snake.append((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+                        snake_direction = (BLOCK_SIZE, 0)
+                        score = 0
+                        place_food()
+                        waiting_for_input = False
+                    elif event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
     # Drawing
     screen.fill(BLACK)
