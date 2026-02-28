@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 import sys
+import os
 
 # Initialize Pygame
 pygame.init()
@@ -31,6 +32,17 @@ snake_direction = (BLOCK_SIZE, 0)
 
 # Food
 food = None
+
+# Score
+score = 0
+
+# High score — load from file
+HIGH_SCORE_FILE = os.path.join(os.path.dirname(__file__), 'highscore.txt')
+try:
+    with open(HIGH_SCORE_FILE, 'r') as f:
+        high_score = int(f.read().strip())
+except (FileNotFoundError, ValueError):
+    high_score = 0
 
 # Font for Bitcoin logo and messages
 font = pygame.font.Font(None, 36)
@@ -65,8 +77,9 @@ def move_snake():
     snake.insert(0, new_head)
     
     # Check if snake ate the food
-    global food  # Declare food as global here since we might modify it
+    global food, score  # Declare food and score as global here since we might modify them
     if new_head == food:
+        score += 1
         place_food()
     else:
         snake.pop()
@@ -120,9 +133,19 @@ while running:
     if not move_snake():
         running = False
         screen.fill(BLACK)
+
+        # Check and update high score
+        new_high_score = score > high_score
+        if new_high_score:
+            with open(HIGH_SCORE_FILE, 'w') as f:
+                f.write(str(score))
+
         # Display messages with proper positioning in yellow
-        display_message("You Lost", YELLOW, 48, -100)
-        display_message("This game will close in 5 seconds", YELLOW, 36, -50)
+        display_message("You Lost", YELLOW, 48, -130)
+        display_message(f"Score: {score}  |  Best: {max(score, high_score)}", WHITE, 36, -75)
+        if new_high_score:
+            display_message("NEW HIGH SCORE!", BITCOIN_ORANGE, 42, -30)
+        display_message("This game will close in 5 seconds", YELLOW, 36, 20 if new_high_score else -30)
         
         pygame.display.flip()
         
@@ -150,6 +173,8 @@ while running:
     if food is not None:  # Check if food is set before drawing
         pygame.draw.rect(screen, WHITE, pygame.Rect(food[0], food[1], BLOCK_SIZE, BLOCK_SIZE))
     screen.blit(bitcoin_logo, (10, 10))  # Positioning the Bitcoin logo
+    score_text = font.render(f"Score: {score}  Best: {high_score}", True, WHITE)
+    screen.blit(score_text, (40, 10))
     
     pygame.display.flip()
     
