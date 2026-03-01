@@ -70,7 +70,7 @@ def move_snake():
     new_head = (snake[0][0] + snake_direction[0], snake[0][1] + snake_direction[1])
     
     # Check if snake has hit the boundaries or itself
-    if new_head[0] < 0 or new_head[0] >= SCREEN_WIDTH or new_head[1] < 0 or new_head[1] >= SCREEN_HEIGHT or new_head in snake:
+    if new_head[0] < 0 or new_head[0] >= SCREEN_WIDTH or new_head[1] < 0 or new_head[1] >= SCREEN_HEIGHT or new_head in snake[:-1]:
         return False
     
     # Move the snake
