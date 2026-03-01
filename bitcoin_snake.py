@@ -3,21 +3,12 @@ import random
 import time
 import sys
 import os
+import json
+from datetime import date
+from game_config import *
 
 # Initialize Pygame
 pygame.init()
-
-# Define colors
-BITCOIN_ORANGE = (247, 147, 26)
-GOLD = (255, 215, 0)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-YELLOW = (255, 255, 0)  # Added yellow for text
-
-# Screen dimensions
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-BLOCK_SIZE = 20
 
 # Set up the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -33,11 +24,13 @@ snake_direction = (BLOCK_SIZE, 0)
 # Food
 food = None
 
-# Score
+# Score and level
 score = 0
+level = 1
 
 # High score — load from file
 HIGH_SCORE_FILE = os.path.join(os.path.dirname(__file__), 'highscore.txt')
+LEADERBOARD_FILE = os.path.join(os.path.dirname(__file__), 'leaderboard.json')
 try:
     with open(HIGH_SCORE_FILE, 'r') as f:
         high_score = int(f.read().strip())
@@ -77,9 +70,10 @@ def move_snake():
     snake.insert(0, new_head)
     
     # Check if snake ate the food
-    global food, score  # Declare food and score as global here since we might modify them
+    global food, score, level  # Declare food, score, and level as global here since we modify them
     if new_head == food:
         score += 1
+        level = score // POINTS_PER_LEVEL + 1
         place_food()
     else:
         snake.pop()
@@ -97,6 +91,60 @@ def display_message(message, color=YELLOW, size=48, y_offset=0):
         text = font.render(line, True, color)
         screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, start_y))
         start_y += text.get_height()
+
+def load_leaderboard():
+    """Load the leaderboard from JSON, returning a list sorted by score (high to low)."""
+    try:
+        with open(LEADERBOARD_FILE, 'r') as f:
+            data = json.load(f)
+            return sorted(data, key=lambda e: e['score'], reverse=True)
+    except (FileNotFoundError, ValueError):
+        return []
+
+def save_leaderboard(leaderboard):
+    """Save the leaderboard list to JSON."""
+    with open(LEADERBOARD_FILE, 'w') as f:
+        json.dump(leaderboard, f, indent=2)
+
+def qualifies_for_leaderboard(score, leaderboard):
+    """Return True if the score earns a spot in the top 5."""
+    if len(leaderboard) < 5:
+        return True
+    return score > leaderboard[-1]['score']
+
+def get_initials():
+    """Show an input screen and return up to 3 uppercase initials typed by the player."""
+    initials = ""
+    font_prompt = pygame.font.Font(None, 34)
+    font_input = pygame.font.Font(None, 60)
+
+    while True:
+        screen.fill(BLACK)
+
+        prompt = font_prompt.render("You made the top 5!  Enter your initials:", True, BITCOIN_ORANGE)
+        screen.blit(prompt, (SCREEN_WIDTH // 2 - prompt.get_width() // 2, SCREEN_HEIGHT // 2 - 80))
+
+        display_str = initials.ljust(3, '_')
+        text = font_input.render(display_str, True, GOLD)
+        screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2 - 10))
+
+        hint = font_prompt.render("ENTER to confirm  |  BACKSPACE to delete", True, WHITE)
+        screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT // 2 + 70))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and initials:
+                    return initials.upper()
+                elif event.key == pygame.K_BACKSPACE:
+                    initials = initials[:-1]
+                elif len(initials) < 3 and event.unicode.isalpha():
+                    initials += event.unicode.upper()
+
 
 # Wait for spacebar to start
 display_message("Hit SPACEBAR to begin", WHITE)
@@ -131,8 +179,6 @@ while running:
 
     # Move the snake
     if not move_snake():
-        screen.fill(BLACK)
-
         # Check and update high score
         new_high_score = score > high_score
         if new_high_score:
@@ -140,13 +186,35 @@ while running:
             with open(HIGH_SCORE_FILE, 'w') as f:
                 f.write(str(score))
 
-        # Display messages with proper positioning in yellow
-        display_message("You Lost", YELLOW, 48, -130)
-        display_message(f"Score: {score}  |  Best: {high_score}", WHITE, 36, -75)
+        # Check leaderboard qualification; prompt for initials if earned
+        leaderboard = load_leaderboard()
+        if score > 0 and qualifies_for_leaderboard(score, leaderboard):
+            initials = get_initials()
+            leaderboard.append({
+                'initials': initials,
+                'score': score,
+                'level': level,
+                'date': date.today().isoformat()
+            })
+            leaderboard.sort(key=lambda e: e['score'], reverse=True)
+            leaderboard = leaderboard[:5]
+            save_leaderboard(leaderboard)
+
+        # Draw game over screen
+        screen.fill(BLACK)
+        display_message("You Lost", YELLOW, 44, -220)
+        display_message(f"Score: {score}  |  Best: {high_score}  |  Level: {level}", WHITE, 28, -178)
         if new_high_score:
-            display_message("NEW HIGH SCORE!", BITCOIN_ORANGE, 42, -30)
-        display_message(f"Snake length: {len(snake)} blocks", WHITE, 36, 20 if new_high_score else -30)
-        display_message("R to Restart  |  Q to Quit", WHITE, 36, 65 if new_high_score else 20)
+            display_message("NEW HIGH SCORE!", BITCOIN_ORANGE, 32, -143)
+        display_message("-- LEADERBOARD --", BITCOIN_ORANGE, 26, -103)
+        if leaderboard:
+            for i, entry in enumerate(leaderboard):
+                line = f"#{i+1}  {entry['initials']}  {entry['score']}pts  Lvl {entry['level']}  {entry['date']}"
+                display_message(line, WHITE, 22, -75 + i * 24)
+        else:
+            display_message("No entries yet", WHITE, 22, -51)
+        display_message(f"Snake length: {len(snake)} blocks", WHITE, 26, 65)
+        display_message("R to Restart  |  Q to Quit", WHITE, 28, 100)
 
         pygame.display.flip()
 
@@ -164,6 +232,7 @@ while running:
                         snake.append((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
                         snake_direction = (BLOCK_SIZE, 0)
                         score = 0
+                        level = 1
                         place_food()
                         waiting_for_input = False
                     elif event.key == pygame.K_q:
@@ -176,13 +245,13 @@ while running:
     if food is not None:  # Check if food is set before drawing
         pygame.draw.rect(screen, WHITE, pygame.Rect(food[0], food[1], BLOCK_SIZE, BLOCK_SIZE))
     screen.blit(bitcoin_logo, (10, 10))  # Positioning the Bitcoin logo
-    score_text = font.render(f"Score: {score}  Best: {high_score}", True, WHITE)
+    score_text = font.render(f"Score: {score}  Best: {high_score}  Level: {level}", True, WHITE)
     screen.blit(score_text, (40, 10))
     
     pygame.display.flip()
     
     # Control game speed
-    clock.tick(10)  # Adjust speed by changing this number
+    clock.tick(BASE_SPEED + (level - 1) * SPEED_PER_LEVEL)
 
 # If we get here, it's because the user closed the window normally
 pygame.quit()
