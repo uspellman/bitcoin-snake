@@ -44,7 +44,7 @@ git clone https://github.com/uspellman/bitcoin-snake.git
 cd bitcoin-snake
 
 # 2. Install dependencies
-pip install pygame
+pip install -r requirements.txt
 
 # 3. Run the game
 python bitcoin_snake.py
@@ -55,6 +55,26 @@ python bitcoin_snake.py
 > pip install pandas numpy pandas_ta requests matplotlib
 > python btc_top_bottom_indicator.py
 > ```
+
+---
+
+## Download & Play (Mac .app)
+
+Don't want to deal with Python? Build a double-clickable `.app` in one command.
+
+**Prerequisites:**
+```bash
+pip install pyinstaller
+```
+
+**Build:**
+```bash
+bash build.sh
+```
+
+Your standalone app will be at `dist/Bitcoin Snake.app`. Double-click it — no Python, no terminal, no setup. Just snake.
+
+> Note: On first launch macOS may show a security prompt. Right-click the app and choose **Open** to bypass it.
 
 ---
 
@@ -85,7 +105,6 @@ python bitcoin_snake.py
 ```
 bitcoin-snake/
 ├── bitcoin_snake.py              # Main game
-├── game_config.py                # All constants (colors, speed, screen size)
 ├── btc_top_bottom_indicator.py   # Bitcoin buy/sell signal script
 ├── snake_chatgpt.py              # Snake variant — OOP, sound, high score
 ├── snake_grok.py                 # Snake variant — grid display, wrap-around walls
@@ -93,7 +112,8 @@ bitcoin-snake/
 ├── eat.wav                       # Sound effect
 ├── gameover.wav                  # Sound effect
 ├── highscore.txt                 # Persisted high score (plain integer)
-├── leaderboard.json              # Top 5 leaderboard entries
+├── requirements.txt              # Python dependencies (pygame, pyinstaller)
+├── build.sh                      # PyInstaller build script — produces Mac .app
 ├── CHANGELOG.md                  # Version history
 └── Practice Folder/              # Learning scripts and exercises
 ```
