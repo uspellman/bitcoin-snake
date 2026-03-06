@@ -11,6 +11,8 @@ pyinstaller \
   --windowed \
   --onefile \
   --name "Bitcoin Snake" \
+  --hidden-import pygame \
+  --collect-all pygame \
   --add-data "bitcoin_logo.png:." \
   --add-data "eat.wav:." \
   --add-data "gameover.wav:." \
