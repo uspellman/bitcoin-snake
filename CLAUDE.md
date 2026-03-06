@@ -156,3 +156,26 @@ Python/
 - Keep `key.env` and any API key files out of any commits — treat them as secrets.
 - When modifying `bitcoin_snake.py` specifically, note it uses globals (not classes) — do not refactor to OOP unless explicitly asked.
 - The `highscore.txt` file contains live game data — do not overwrite or reset it without asking.
+
+---
+
+## Plugin
+
+This project includes a Claude Code plugin located at `.claude/plugins/bitcoin-snake-dev/`.
+
+### What the plugin does
+
+- **Black auto-formatter hook** — After Claude writes any `.py` file, `black` is automatically run on it to keep formatting consistent. It runs silently and never blocks your workflow if `black` is missing.
+- **`/review` slash command** — Type `/review` in a Claude Code conversation to run the `review_and_commit.sh` pipeline. This triggers automated code review and commits from within the chat.
+
+### How to use it
+
+The plugin is active automatically when you open this project in Claude Code — no extra steps needed. The hooks config lives in `.claude/settings.json` and the slash command in `.claude/commands/review.md`.
+
+### Setup for new developers
+
+Install the black formatter before starting:
+
+```bash
+pip install black
+```

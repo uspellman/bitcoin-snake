@@ -13,3 +13,7 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+
+# Claude Code plugin secrets
+.claude/*.env
+.claude/**/*.env

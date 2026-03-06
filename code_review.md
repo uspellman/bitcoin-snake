@@ -4,132 +4,91 @@
 
 ## Bugs
 
-### 1. Infinite loop when the board is full
-**File:** `bitcoin_snake.py`, lines 49–54
+### 1. Infinite loop in `place_food()` when the board is full
+**File:** `bitcoin_snake.py`, line 49
+**Description:** The `while True:` loop in `place_food()` has no exit condition other than finding a free cell. If every grid position is occupied by the snake (all 1,200 cells on an 800x600 / 20px grid), the loop runs forever and hangs the game process permanently. The git log references a prior fix for this, but no guard exists in the current code.
 **Severity:** High
-
-`place_food()` uses a `while True` loop that only exits when it finds a grid position not occupied by the snake. If the snake ever fills all 1,200 cells (800×600 grid at BLOCK_SIZE 20), no empty cell will ever be found and the loop runs forever, freezing the game with no way to recover. This is a real crash condition for any player who reaches a very long snake.
 
 ---
 
-### 2. Game speed is unbounded at high levels
+### 2. Unbounded game speed at high levels
 **File:** `bitcoin_snake.py`, line 254
+**Description:** `clock.tick(BASE_SPEED + (level - 1) * SPEED_PER_LEVEL)` has no upper cap. With `BASE_SPEED = 10` and `SPEED_PER_LEVEL = 2`, the game runs at 20 FPS by level 6, 50 FPS by level 21, and over 100 FPS by level 50. Beyond a moderate level the snake moves faster than human reaction time allows. Neither `bitcoin_snake.py` nor `game_config.py` defines a `MAX_SPEED` constant.
 **Severity:** High
 
-```python
-clock.tick(BASE_SPEED + (level - 1) * SPEED_PER_LEVEL)
-```
-
-There is no maximum cap on the FPS. With `BASE_SPEED = 10` and `SPEED_PER_LEVEL = 2`, the game hits 20 FPS at level 6, 50 FPS at level 21, and 108 FPS at level 50 (score 245). Beyond a moderate level the game becomes physically impossible to play — the snake moves faster than human reaction time. Nothing in `game_config.py` defines an upper limit.
-
 ---
 
-### 3. Start screen renders on an uncleared surface
-**File:** `bitcoin_snake.py`, lines 150–151
-**Severity:** Low
-
-```python
-display_message("Hit SPACEBAR to begin", WHITE)
-pygame.display.flip()
-```
-
-`display_message()` is called immediately after pygame setup, but `screen.fill()` is never called first. The display surface is uninitialized at this point. pygame typically zeroes the buffer to black, so in practice this is usually invisible, but it is not guaranteed behavior and is a latent visual glitch.
-
----
-
-### 4. No way to cancel the initials prompt
-**File:** `bitcoin_snake.py`, lines 115–146
+### 3. `save_leaderboard()` has no exception handling
+**File:** `bitcoin_snake.py`, lines 104-107
+**Description:** `save_leaderboard()` calls `open()` and `json.dump()` with no `try/except` block. If the write fails for any reason (disk full, permissions denied, path missing), an unhandled exception crashes the game mid-session. By contrast, the paired `load_leaderboard()` at line 101 does wrap its I/O in `try/except (FileNotFoundError, ValueError)`. The save function has no equivalent protection.
 **Severity:** Medium
 
-`get_initials()` requires the player to type at least one character and press ENTER before returning. There is no Escape key or other path to skip the prompt. If a player qualifies for the leaderboard but does not want to enter initials, they are stuck in the input screen with no exit other than closing the window entirely (which triggers `sys.exit()`).
+---
+
+### 4. `get_initials()` event loop runs at 100% CPU
+**File:** `bitcoin_snake.py`, lines 121-146
+**Description:** The `while True:` input loop inside `get_initials()` contains no `clock.tick()` or `pygame.time.delay()` call. It spins at maximum speed while waiting for a keypress, pinning one CPU core at 100% for the entire duration of the initials entry screen.
+**Severity:** Medium
 
 ---
 
-### 5. `qualifies_for_leaderboard()` returns `True` for a score of 0 on an empty board
-**File:** `bitcoin_snake.py`, lines 109–113 and 191
+### 5. No way to cancel or skip the initials prompt
+**File:** `bitcoin_snake.py`, lines 115-146
+**Description:** `get_initials()` requires the player to type at least one alphabetic character and press ENTER before the function returns. There is no Escape key or any other path to skip the prompt. A player who qualifies for the leaderboard but does not want to enter initials is stuck in the input screen with no exit other than closing the window via the QUIT event (which calls `sys.exit()`).
+**Severity:** Medium
+
+---
+
+### 6. Start screen renders on an uncleared display surface
+**File:** `bitcoin_snake.py`, line 150
+**Description:** `display_message("Hit SPACEBAR to begin", WHITE)` is called immediately after display setup, before any `screen.fill()`. Text is drawn onto an uninitialized surface. pygame typically initializes surfaces to black, so this usually looks correct, but the behavior is not guaranteed. On some systems or pygame versions this could show garbage pixels behind the text.
 **Severity:** Low
 
-`qualifies_for_leaderboard()` returns `True` whenever `len(leaderboard) < 5`, regardless of the score value. A score of 0 would pass this check on an empty leaderboard. The outer `score > 0` guard at line 191 prevents the prompt from appearing, but the function itself produces a misleading result for any caller who doesn't add that extra check.
+---
+
+### 7. Leaderboard silently excludes tied scores
+**File:** `bitcoin_snake.py`, line 113
+**Description:** `qualifies_for_leaderboard()` uses a strict greater-than comparison (`score > leaderboard[-1]['score']`). A score that exactly ties the 5th-place entry does not qualify. The player receives no feedback and is silently excluded from the leaderboard, which is likely unintentional.
+**Severity:** Low
 
 ---
 
 ## Code Quality
 
-### 1. Module-level `font` variable is shadowed inside `display_message()`
-**File:** `bitcoin_snake.py`, lines 41 and 85
+### 1. `display_message()` shadows the module-level `font` variable
+**Lines 41 and 85** -- A module-level `font` is defined at line 41 and used at line 248 to render the HUD score text. Inside `display_message()`, a local variable also named `font` is created at line 85. They are separate objects in different scopes. The code works today, but the name collision is misleading -- editing one while thinking it affects the other would introduce a silent bug.
 
-A module-level `font` is defined at line 41 and used at line 248 to render the HUD score text. Inside `display_message()`, a local variable also named `font` is created at line 85. They are separate objects in different scopes. The code works, but the name collision is confusing — editing either one while thinking it affects the other would introduce a silent bug.
+### 2. `display_message()` creates a new Font object on every call
+**Line 85** -- `pygame.font.Font(None, size)` is called each time `display_message()` is invoked. Font construction is relatively expensive in pygame. The game-over screen calls `display_message()` approximately 9 times per death, each time allocating a new font object. The same small set of sizes (22, 26, 28, 32, 44) is always used, so the objects could be created once rather than on every call.
 
----
+### 3. Entire game runs at module level with no `main()` function
+**Lines 149-257** -- The start screen, event loop, game loop, and all game state are top-level module code. Importing this file from any other script launches the game immediately. The Python convention is `if __name__ == '__main__': main()`. Wrapping the game logic in a function would also make the variable scoping explicit.
 
-### 2. `display_message()` creates a new `Font` object on every call
-**File:** `bitcoin_snake.py`, line 85
+### 4. Wildcard import from `game_config`
+**Line 8** -- `from game_config import *` dumps all constants into the module namespace without a visible source. A reader who sees `BITCOIN_ORANGE`, `BASE_SPEED`, or `POINTS_PER_LEVEL` in `bitcoin_snake.py` cannot tell where those names come from without opening `game_config.py`. This can also silently hide name collisions.
 
-```python
-font = pygame.font.Font(None, size)
-```
+### 5. `move_snake()` has inconsistent `global` declarations
+**Lines 61-81** -- `move_snake()` calls `snake.insert()` and `snake.pop()` (in-place list mutation, no `global` needed) but explicitly declares `global food, score, level` for variable reassignment. The function touches four module-level names in total but only declares three of them. This is correct Python, but the inconsistency makes it harder to see at a glance which globals the function modifies.
 
-Font construction is relatively expensive in pygame. The game over screen calls `display_message()` approximately 9 times per death, each time allocating a new font object. The same small set of sizes (22, 26, 28, 32, 44) is always used, so the objects could be created once rather than on every call.
-
----
-
-### 3. `move_snake()` mutates `snake` without a `global` declaration, inconsistently
-**File:** `bitcoin_snake.py`, lines 61–81
-
-`move_snake()` calls `snake.insert()` and `snake.pop()` (list mutation — no `global` needed) but explicitly declares `global food, score, level` for simple variable reassignment. The function touches four globals in total but only declares three of them. This is technically correct in Python, but the inconsistency makes it harder to understand which globals the function modifies at a glance.
-
----
-
-### 4. `food is not None` guard is misleading
-**File:** `bitcoin_snake.py`, line 245
-
-```python
-if food is not None:
-    pygame.draw.rect(...)
-```
-
-`place_food()` is called before the game loop starts (line 164) and on every restart (line 236). `food` is never reset to `None` after that. The guard implies `food` could be `None` during normal gameplay, which it cannot. The check is safe, but it creates a false impression about the program's state.
-
----
-
-### 5. Wildcard import from `game_config`
-**File:** `bitcoin_snake.py`, line 8
-
-```python
-from game_config import *
-```
-
-All constants are dumped into the module's namespace without a visible source. Reading the file alone, there is no indication where `BITCOIN_ORANGE`, `BASE_SPEED`, `POINTS_PER_LEVEL`, etc. come from. This can also hide name collisions silently.
-
----
-
-### 6. All game logic runs at the top level of the module
-**File:** `bitcoin_snake.py`, lines 149–257
-
-The start screen, event loop, game loop, and all game state are top-level module code. This means importing the file from any other script launches the game immediately. The Python convention is `if __name__ == '__main__': main()` — wrapping the game logic in a `main()` function.
-
----
+### 6. `food is not None` guard is misleading
+**Line 245** -- The check `if food is not None:` before drawing food implies `food` could be `None` during normal gameplay. In practice it cannot: `place_food()` is called at line 164 before the loop starts and again at line 236 on every restart. `food` is never reset to `None` after initialization. The guard is harmless but creates a false impression about program state.
 
 ### 7. `game_config.py` defines speed settings but no speed ceiling
-**File:** `game_config.py`, lines 16–18
-
-`BASE_SPEED` and `SPEED_PER_LEVEL` are defined as tunable constants, making them easy to adjust without touching game logic. However, the natural companion constant `MAX_SPEED` is absent. Someone changing `SPEED_PER_LEVEL` in the config has no way to also set a cap from the same file — they would need to edit the game loop directly.
+**game_config.py, lines 16-18** -- `BASE_SPEED` and `SPEED_PER_LEVEL` are tunable constants, making them easy to adjust without touching game logic. The natural companion `MAX_SPEED` is absent. Someone changing `SPEED_PER_LEVEL` in the config has no way to also cap the speed from the same file -- they must edit the game loop directly.
 
 ---
 
 ## Suggested Improvements
 
-### 1. Add a speed cap to `game_config.py`
-Add `MAX_SPEED = 20` to `game_config.py`. Then in `bitcoin_snake.py` at line 254:
+### 1. Cap game speed in `game_config.py`
+Add `MAX_SPEED = 20` (or another sensible ceiling) to `game_config.py`, then change line 254 in `bitcoin_snake.py` to:
 ```python
 clock.tick(min(BASE_SPEED + (level - 1) * SPEED_PER_LEVEL, MAX_SPEED))
 ```
-This keeps speed tunable from one place and prevents the game from becoming unplayable.
-
----
+This keeps the ceiling tunable from the config file alongside the other speed constants.
 
 ### 2. Fix the `place_food()` infinite loop
-Replace the `while True` loop with a list of free cells. If no free cells exist, the player has won:
+Replace the `while True:` loop with a list of free cells. If none exist, signal a win condition rather than freezing:
 ```python
 def place_food():
     global food
@@ -140,35 +99,42 @@ def place_food():
         if (x, y) not in snake
     ]
     if not free_cells:
-        return False  # Board is full — player wins
+        return False  # board is full -- player wins
     food = random.choice(free_cells)
     return True
 ```
 
----
-
 ### 3. Add an Escape key to `get_initials()`
-Inside the `KEYDOWN` handler in `get_initials()`:
+Inside the `KEYDOWN` handler, add:
 ```python
 elif event.key == pygame.K_ESCAPE:
     return None
 ```
-Then check the return value before appending to the leaderboard. This gives the player a graceful exit from the prompt.
+Then check the return value before appending to the leaderboard. This gives players a graceful exit from the prompt.
 
----
+### 4. Add `clock.tick()` to `get_initials()`
+Insert `clock.tick(30)` at the bottom of the `while True:` loop inside `get_initials()`. This limits CPU usage during initials entry at no visible cost to responsiveness.
 
-### 4. Rename local `font` in `display_message()` to avoid shadowing
+### 5. Add error handling to `save_leaderboard()`
+Wrap the file write in a `try/except (OSError, IOError):` block so a failed save does not crash the game:
+```python
+def save_leaderboard(leaderboard):
+    try:
+        with open(LEADERBOARD_FILE, 'w') as f:
+            json.dump(leaderboard, f, indent=2)
+    except (OSError, IOError):
+        pass  # non-fatal: leaderboard save failed silently
+```
+
+### 6. Rename the local `font` variable inside `display_message()` to avoid shadowing
 ```python
 def display_message(message, color=YELLOW, size=48, y_offset=0):
     msg_font = pygame.font.Font(None, size)
-    lines = message.split('\n')
     ...
 ```
-This makes the module-level `font` and the local font unambiguous.
+This makes the module-level `font` and the local font unambiguous for anyone reading the code.
 
----
-
-### 5. Wrap top-level game code in a `main()` function
+### 7. Wrap top-level game code in `if __name__ == '__main__':`
 ```python
 def main():
     # place_food(), game loop, start screen, etc.
@@ -177,4 +143,4 @@ def main():
 if __name__ == '__main__':
     main()
 ```
-This follows Python convention and makes the file safely importable without launching the game.
+This follows Python convention and makes `bitcoin_snake.py` safely importable without launching the game.
