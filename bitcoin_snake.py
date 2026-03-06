@@ -56,7 +56,7 @@ def place_food():
 def draw_snake():
     """Draw the snake on the screen."""
     for segment in snake:
-        pygame.draw.rect(screen, GOLD, pygame.Rect(segment[0], segment[1], BLOCK_SIZE, BLOCK_SIZE))
+        pygame.draw.rect(screen, WHITE, pygame.Rect(segment[0], segment[1], BLOCK_SIZE, BLOCK_SIZE))
 
 def move_snake():
     """Move the snake in the current direction."""
@@ -243,7 +243,7 @@ while running:
     screen.fill(BLACK)
     draw_snake()
     if food is not None:  # Check if food is set before drawing
-        pygame.draw.rect(screen, WHITE, pygame.Rect(food[0], food[1], BLOCK_SIZE, BLOCK_SIZE))
+        pygame.draw.rect(screen, GOLD, pygame.Rect(food[0], food[1], BLOCK_SIZE, BLOCK_SIZE))
     screen.blit(bitcoin_logo, (10, 10))  # Positioning the Bitcoin logo
     score_text = font.render(f"Score: {score}  Best: {high_score}  Level: {level}", True, WHITE)
     screen.blit(score_text, (40, 10))
