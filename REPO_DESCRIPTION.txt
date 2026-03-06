@@ -1,0 +1,1 @@
+Bitcoin-themed Snake game in Python — gold snake, level progression, top-5 leaderboard, and persistent high score. Stack sats, don't crash.

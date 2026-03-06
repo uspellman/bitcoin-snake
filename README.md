@@ -1,70 +1,100 @@
 # Bitcoin Snake
 
-A Bitcoin-themed Snake game built with Python and pygame, plus a companion Bitcoin trading signal script.
+> Classic arcade Snake, reimagined for the crypto era. Gold snake. Bitcoin orange. Real stakes — no continues.
 
 ---
 
-## Project Overview
+```
+╔══════════════════════════════════════════════════════════╗
+║  ₿  Score: 12    Best: 24    Level: 3                   ║
+║                                                          ║
+║                                                          ║
+║              ▓▓▓▓▓▓                                     ║
+║                   ▓▓                                     ║
+║                   ▓▓                                     ║
+║                   ▓▓▓▓▓▓▓▓                              ║
+║                         ▓▓                               ║
+║                         ▓▓                               ║
+║                                                          ║
+║                                  ░░                      ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+```
 
-Bitcoin Snake is a classic Snake game with a crypto twist. The snake is styled in gold, the food is white, and the Bitcoin logo is displayed in the corner of the screen. When the snake dies, the game displays a "You Lost" message and exits after a short countdown. There is no restart — each run is a fresh game.
-
-The project also includes `btc_top_bottom_indicator.py`, a standalone script that fetches real Bitcoin price data and generates buy/sell signals using technical indicators.
+Stack sats. Don't crash. Get on the board.
 
 ---
 
 ## Features
 
-- Gold-colored snake on a dark background with Bitcoin orange accents
-- Bitcoin logo displayed in the corner during gameplay
-- Wall collision and self-collision detection end the game
-- "You Lost" screen with a 5-second blinking countdown before auto-exit
-- Companion BTC trading signal script using SMA, EMA, RSI, and MACD
+- **Bitcoin theme** — gold snake, Bitcoin orange UI, ₿ logo on-screen at all times
+- **Level progression** — speed increases every 5 points, up to a max cap (if you can handle it)
+- **Persistent high score** — your best run is saved between sessions
+- **Top 5 leaderboard** — earn a spot and enter your initials for arcade immortality
+- **Restart without quitting** — press R after a loss and go again immediately
+- **Companion trading script** — `btc_top_bottom_indicator.py` fetches live BTC price data and generates buy/sell signals using SMA, EMA, RSI, and MACD
 
 ---
 
-## How to Play
-
-1. Run the game:
-   ```bash
-   python bitcoin_snake.py
-   ```
-2. Press **SPACEBAR** to start.
-3. Use the **arrow keys** to move the snake.
-4. Eat the white food blocks to grow.
-5. Avoid hitting the walls or running into yourself — either ends the game.
-
----
-
-## Dependencies
-
-Install all required libraries before running:
+## Quickstart
 
 ```bash
-pip install pygame pandas numpy pandas_ta requests matplotlib
+# 1. Clone the repo
+git clone https://github.com/uspellman/bitcoin-snake.git
+cd bitcoin-snake
+
+# 2. Install dependencies
+pip install pygame
+
+# 3. Run the game
+python bitcoin_snake.py
 ```
 
-| Library | Used In |
-|---|---|
-| `pygame` | `bitcoin_snake.py` |
-| `pandas`, `numpy` | `btc_top_bottom_indicator.py` |
-| `pandas_ta` | `btc_top_bottom_indicator.py` |
-| `requests` | `btc_top_bottom_indicator.py` |
-| `matplotlib` | `btc_top_bottom_indicator.py` |
+> The trading signal script needs additional libraries:
+> ```bash
+> pip install pandas numpy pandas_ta requests matplotlib
+> python btc_top_bottom_indicator.py
+> ```
 
 ---
 
-## File Structure
+## Controls
+
+| Key | Action |
+|---|---|
+| `SPACEBAR` | Start game |
+| Arrow keys | Change direction |
+| `R` | Restart after game over |
+| `Q` | Quit after game over |
+
+---
+
+## How It Works
+
+- Press SPACEBAR on the title screen to begin
+- Guide the gold snake to eat white food blocks — each one grows your snake and adds to your score
+- Every 5 points advances you to the next level and increases speed
+- Hit a wall or yourself and the run is over
+- If your score cracks the top 5, you'll be prompted to enter your initials
+- Press R to immediately start a new run, or Q to exit
+
+---
+
+## Project Structure
 
 ```
-Python/
-├── bitcoin_snake.py              # Main game — Bitcoin-themed Snake
+bitcoin-snake/
+├── bitcoin_snake.py              # Main game
+├── game_config.py                # All constants (colors, speed, screen size)
 ├── btc_top_bottom_indicator.py   # Bitcoin buy/sell signal script
-├── snake_chatgpt.py              # Snake variant with OOP, sound, high score
-├── snake_grok.py                 # Snake variant with grid and wrap-around walls
-├── bitcoin_logo.png              # Bitcoin logo asset used in the game
-├── eat.wav                       # Sound effect for eating food
-├── gameover.wav                  # Sound effect for game over
-├── highscore.txt                 # Persisted high score (plain text integer)
+├── snake_chatgpt.py              # Snake variant — OOP, sound, high score
+├── snake_grok.py                 # Snake variant — grid display, wrap-around walls
+├── bitcoin_logo.png              # Bitcoin logo asset
+├── eat.wav                       # Sound effect
+├── gameover.wav                  # Sound effect
+├── highscore.txt                 # Persisted high score (plain integer)
+├── leaderboard.json              # Top 5 leaderboard entries
+├── CHANGELOG.md                  # Version history
 └── Practice Folder/              # Learning scripts and exercises
 ```
 
@@ -74,8 +104,35 @@ Python/
 
 | Setting | Value |
 |---|---|
-| Screen size | 800 x 600 px |
+| Screen | 800 x 600 px |
 | Block size | 20 px |
-| Game speed | 10 FPS |
-| Snake color | Gold |
-| Food color | White |
+| Starting speed | 10 FPS |
+| Speed increase | +2 FPS per level |
+| Max speed | 30 FPS |
+| Points per level | 5 |
+
+---
+
+## Contributing
+
+Found a bug or have an idea? Open an issue or submit a pull request.
+
+This project uses an automated code review pipeline. From within Claude Code, run:
+
+```
+/review
+```
+
+This triggers `review_and_commit.sh`, which performs a structured review pass and commits clean changes. The pipeline is defined in `.claude/commands/review.md`.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+
+---
+
+## License
+
+MIT — do whatever you want with it. Just don't run it during a bull market; you'll never stop playing.
