@@ -16,3 +16,4 @@ BLOCK_SIZE = 20
 BASE_SPEED = 10       # Starting FPS
 SPEED_PER_LEVEL = 2   # FPS added per level
 POINTS_PER_LEVEL = 5  # Points needed to advance a level
+MAX_SPEED = 30        # Maximum FPS cap
